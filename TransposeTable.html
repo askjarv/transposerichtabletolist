@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rich Text Table Transposer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #inputTable, pre {
+      width: 100%;
+      height: 200px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #inputTable {
+      background-color: #f9f9f9;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rich Text Table Transposer</h1>
+  <p>Paste your table below (from Word, Excel, or a web page), and the transposed version will appear.</p>
+  <div id="inputTable" contenteditable="true" placeholder="Paste your rich text table here..."></div>
+  <button onclick="transposeRichTable()">Transpose Table</button>
+  <button onclick="copyToClipboard()">Copy to Clipboard</button>
+  <button onclick="downloadOutput()">Download as .txt</button>
+  <pre id="output"></pre>
+
+  <script>
+    let transposedText = ''; // To store the transposed output globally
+
+    function transposeRichTable() {
+      const inputTableDiv = document.getElementById('inputTable');
+      const output = document.getElementById('output');
+
+      // Parse pasted content as an HTML table
+      const tableHtml = inputTableDiv.innerHTML;
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = tableHtml;
+
+      // Locate the table and its rows/cells
+      const table = tempDiv.querySelector('table');
+      if (!table) {
+        output.textContent = "No valid table detected. Please paste a table.";
+        transposedText = "No valid table detected. Please paste a table.";
+        return;
+      }
+
+      const rows = table.querySelectorAll('tr');
+      const headers = Array.from(rows[0].querySelectorAll('th, td')).map(cell => cell.innerText.trim());
+      const dataRows = Array.from(rows).slice(1).map(row =>
+        Array.from(row.querySelectorAll('td')).map(cell => cell.innerText.trim())
+      );
+
+      // Build the transposed format
+      let result = '';
+      dataRows.forEach(row => {
+        result += `${row[0]}\n`; // Add the Year
+        result += `- ${row[1]}\n`; // Add the Item
+        result += `  - ${row[2] || '(No data)'}\n`; // Add Approx Cost
+
+        // Process "Why" column
+        const why = (row[3] || '(No data)').split(';').map(item => `    -- ${item.trim()}`).join('\n');
+        result += `  - Why:\n${why}\n`;
+
+        // Process "Counter" column
+        const counter = (row[4] || '(No data)').split(';').map(item => `    -- ${item.trim()}`).join('\n');
+        result += `  - Counter:\n${counter}\n\n`;
+      });
+
+      // Display the result
+      output.textContent = result.trim();
+      transposedText = result.trim(); // Store the result globally
+    }
+
+    function copyToClipboard() {
+      if (!transposedText) {
+        alert("No transposed data to copy. Please process a table first.");
+        return;
+      }
+      navigator.clipboard.writeText(transposedText)
+        .then(() => alert("Transposed data copied to clipboard!"))
+        .catch(() => alert("Failed to copy to clipboard."));
+    }
+
+    function downloadOutput() {
+      if (!transposedText) {
+        alert("No transposed data to download. Please process a table first.");
+        return;
+      }
+      const blob = new Blob([transposedText], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'transposed_output.txt';
+      link.click();
+    }
+  </script>
+</body>
+</html>
